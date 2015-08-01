@@ -20,15 +20,10 @@ BEGIN
 
 --  drop the temporary table for Lattices
     EXECUTE format('DROP TABLE %s;', tb || '_HATMP');
-/*
---  drop triggers
-    EXECUTE format('DROP TRIGGER %s_lainup ON %s;', tb, tb);
-    EXECUTE format('DROP FUNCTION lp_%s_triinup();', tb);
-    EXECUTE format('DROP TRIGGER %s_ladel ON %s', tb, tb);
-    EXECUTE format('DROP FUNCTION lp_%s_tridel();', tb);
-*/
---  drop extension (for debugging)
-    DROP EXTENSION hstore;
+
+--  drop the triggers
+    EXECUTE format('DROP TRIGGER %s_hainup ON %s;', tb, tb);
+
 END
 $T1$
 language plpgsql;
