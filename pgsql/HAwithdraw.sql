@@ -23,6 +23,7 @@ BEGIN
 
 --  drop the triggers
     EXECUTE format('DROP TRIGGER %s_hainup ON %s;', tb, tb);
+    EXECUTE format('DROP TRIGGER %s_hadel ON %s;', tb, tb);
 
 END
 $T1$
