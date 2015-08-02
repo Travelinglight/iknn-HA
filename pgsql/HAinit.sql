@@ -59,7 +59,7 @@ BEGIN
     END LOOP;
 
     EXECUTE format('
-    CREATE OR REPLACE FUNCTION HA_%s_triInUp() RETURNS TRIGGER 
+    CREATE OR REPLACE FUNCTION HA_%s_triIns() RETURNS TRIGGER 
     AS $T2$
     DECLARE
         par record;
@@ -81,8 +81,7 @@ BEGIN
                     -- get the smallest of the right bin
                     EXECUTE format(''SELECT * FROM habin_%s_%%s_%%s ORDER BY val LIMIT 1'', par.key, (ist+1)::text) INTO recr;
                     LOOP
-                        EXIT WHEN par.value::float <= recr.val::float;
-                        EXIT WHEN recr IS NULL;
+                        EXIT WHEN par.value::float <= recr.val::float OR recr IS NULL;
                         EXECUTE format(''INSERT INTO habin_%s_%%s_%%s VALUES(%%s, %%s)'', par.key, ist::text, recr.val, recr.ha_id);
                         EXECUTE format(''DELETE FROM habin_%s_%%s_%%s WHERE ha_id = %%s'', par.key, (ist+1)::text, recr.ha_id);
                         ist := ist + 1;
@@ -111,8 +110,8 @@ BEGIN
     $T2$ LANGUAGE plpgsql;', tb, tb, tb, tb, tb, tb, tb, tb, tb, tb, tb, tb, tb);
 
     EXECUTE format('
-    CREATE TRIGGER %s_HAinup AFTER INSERT ON %s
-    FOR EACH ROW EXECUTE PROCEDURE HA_%s_triInUp();', tb, tb, tb); 
+    CREATE TRIGGER %s_HAins AFTER INSERT ON %s
+    FOR EACH ROW EXECUTE PROCEDURE HA_%s_triins();', tb, tb, tb); 
 
     EXECUTE format('
     CREATE OR REPLACE FUNCTION HA_%s_tridel() RETURNS TRIGGER 
@@ -168,7 +167,65 @@ BEGIN
     EXECUTE format('
     CREATE TRIGGER %s_hadel AFTER DELETE ON %s
     FOR EACH ROW EXECUTE PROCEDURE HA_%s_tridel();', tb, tb, tb);
-   
+
+    EXECUTE format('
+    CREATE OR REPLACE FUNCTION HA_%s_triupd() RETURNS TRIGGER 
+    AS $T2$
+    DECLARE
+        par record;
+        rec record;
+        nbin int;
+        nobj int;
+        exst int;
+        upd int;
+    BEGIN
+        FOR par IN SELECT (each(hstore(NEW))).*
+        LOOP
+            IF par.key = ''ha_id'' THEN CONTINUE; END IF;
+            IF par.value IS NOT NULL THEN
+                EXECUTE format(''SELECT nbin FROM %s_hatmp WHERE dimension = %%s'', quote_nullable(par.key)) INTO nbin;
+                EXECUTE format(''SELECT nobj FROM %s_hatmp WHERE dimension = %%s'', quote_nullable(par.key)) INTO nobj;
+
+                upd := 1;
+                LOOP
+                    EXIT WHEN upd >= nbin OR (nobj < nbin AND upd > nobj);
+                    EXECUTE format(''SELECT count(*) FROM habin_%s_%%s_%%s WHERE ha_id = %%s'', par.key, upd::text, NEW.ha_id::text) INTO exst;
+                    IF exst > 0 THEN EXIT; END IF;
+                    upd := upd + 1;
+                END LOOP;
+                EXECUTE format(''DELETE FROM habin_%s_%%s_%%s WHERE ha_id = %%s'', par.key, upd::text, NEW.ha_id::text);
+    
+                IF upd < nbin THEN  
+                    LOOP
+                        EXIT WHEN upd = nbin;
+                        EXECUTE format(''SELECT * FROM habin_%s_%%s_%%s ORDER BY val LIMIT 1'', par.key, (upd+1)::text) INTO rec;
+                        EXIT WHEN rec IS NULL OR par.value::float <= rec.val::float;
+                        EXECUTE format(''INSERT INTO habin_%s_%%s_%%s VALUES(%%s, %%s)'', par.key, upd::text, rec.val, rec.ha_id);
+                        EXECUTE format(''DELETE FROM habin_%s_%%s_%%s WHERE ha_id = %%s'', par.key, (upd+1)::text, rec.ha_id);
+                        upd := upd + 1;
+                    END LOOP;
+                END IF;
+                IF upd > 1 THEN
+                    LOOP
+                        EXIT WHEN upd = 1;
+                        EXECUTE format(''SELECT * FROM habin_%s_%%s_%%s ORDER BY val DESC LIMIT 1'', par.key, (upd-1)::text) INTO rec;
+                        EXIT WHEN par.value::float >= rec.val::float;
+                        EXECUTE format(''INSERT INTO habin_%s_%%s_%%s VALUES(%%s, %%s)'', par.key, upd::text, rec.val, rec.ha_id);
+                        EXECUTE format(''DELETE FROM habin_%s_%%s_%%s WHERE ha_id = %%s'', par.key, (upd-1)::text, rec.ha_id);
+                        upd := upd - 1;
+                    END LOOP;
+                END IF;
+
+                EXECUTE format(''INSERT INTO habin_%s_%%s_%%s VALUES(%%s, %%s)'', par.key, upd::text, par.value::text, NEW.ha_id::text);
+            END IF;
+        END LOOP;
+        RETURN NEW;
+    END
+    $T2$ LANGUAGE plpgsql;', tb, tb, tb, tb, tb, tb, tb, tb, tb, tb, tb, tb);
+
+    EXECUTE format('
+    CREATE TRIGGER %s_haupd BEFORE UPDATE ON %s
+    FOR EACH ROW EXECUTE PROCEDURE HA_%s_triupd();', tb, tb, tb);
 END
 $$
 language plpgsql;

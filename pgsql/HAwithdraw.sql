@@ -22,8 +22,9 @@ BEGIN
     EXECUTE format('DROP TABLE %s;', tb || '_HATMP');
 
 --  drop the triggers
-    EXECUTE format('DROP TRIGGER %s_hainup ON %s;', tb, tb);
+    EXECUTE format('DROP TRIGGER %s_hains ON %s;', tb, tb);
     EXECUTE format('DROP TRIGGER %s_hadel ON %s;', tb, tb);
+    EXECUTE format('DROP TRIGGER %s_haupd ON %s;', tb, tb);
 
 END
 $T1$
