@@ -38,7 +38,7 @@ void digestQuery(char *iknnQuery, char *tbl, char **qFnames, float *qValues, int
 void heapInsert(Heap *heap, double dist, SPITupleTable *tuptable, long pt, TupleDesc *tupdesc);
 void heapCover(Heap *heap, long node, double dist, SPITupleTable *tuptable, long pt, TupleDesc *tupdesc);
 int binarySearch(int maxBin, char* fieldName, char* tb, float qVal);
-double calcDist(TupleDesc *tupdesc, SPITupleTable *tuptable, long pt, queryObj *qObj, double tao);
+double calcDist(TupleDesc *tupdesc, SPITupleTable *tuptable, long pt, queryObj *qObj);
 void extractVals(SPITupleTable *tuptable, long pt, TupleDesc *tupdesc, HeapRec *rec);
 
 double fabs(double n) {
@@ -295,23 +295,19 @@ int binarySearch(int maxBin, char* fieldName, char* tb, float qVal) {
     return l;
 }
 
-double calcDist(TupleDesc *tupdesc, SPITupleTable *tuptable, long pt, queryObj *qObj, double tao) {
+double calcDist(TupleDesc *tupdesc, SPITupleTable *tuptable, long pt, queryObj *qObj) {
     int i, Iseto = 0;
     char *number;
     double sum = 0;
-    double tmp = 0;
     double dif;
     HeapTuple tuple = tuptable->vals[pt];
 
-    tmp = tao * Iseto / dim;
     for (i = 1; i <= dim; i++) {
         number = SPI_getvalue(tuple, *tupdesc, i + 1);
         if (number && qObj[i - 1].complete == 1) {
             Iseto++;
             dif = string2double(number) - qObj[i - 1].value;
             sum += dif * dif;
-            if ((tao >= 0) && (sum > tmp))  // partial distance pruning
-                return -1;  // return -1 means the object should not be added into candidate set
         }
     }
     return sum * dim / Iseto;
@@ -459,7 +455,6 @@ iknnHA(PG_FUNCTION_ARGS) {
                     if (nObj == 0)
                         continue;
                     whichBin = binarySearch(maxBin, qObj[qi].fieldName, tbl, qObj[qi].value);
-ereport(INFO, (errmsg("whichBin: %d", whichBin)));                        
                     snprintf(getObjects, 1024, "SELECT * FROM %s t1 NATURAL JOIN habin_%s_%s_%d t2 WHERE t1.ha_id = t2.ha_id;", tbl, tbl, qObj[qi].fieldName, whichBin);
 
                     // run the SQL command 
@@ -474,12 +469,12 @@ ereport(INFO, (errmsg("whichBin: %d", whichBin)));
 
                         for (i = 0; i < procObj; i++) {
                             if (res.length < K) {
-                                dist = calcDist(&tupdesc, tuptable, i, qObj, -1); // -1 means no partial distance pruning
+                                dist = calcDist(&tupdesc, tuptable, i, qObj); // -1 means no partial distance pruning
                                 heapInsert(&res, dist, tuptable, i, &tupdesc);
                             }
                             else {
-                                dist = calcDist(&tupdesc, tuptable, i, qObj, res.rec[1].dist);
-                                if (dist >= 0)
+                                dist = calcDist(&tupdesc, tuptable, i, qObj);
+                                if (dist < res.rec[1].dist)
                                     heapCover(&res, 1, dist, tuptable, i, &tupdesc);
                             }
                         }
