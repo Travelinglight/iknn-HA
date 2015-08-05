@@ -2,7 +2,7 @@
 incomplete k nearest neighbor query in postgresql using HA algorithm
 
 ## Algorithm Discription
-### LP algorithm:
+### HA algorithm:
   Please see Mr. Gao's paper: <i><b>IkNN-TFS-Yunjun Gao-20150115</b></i>
 ### Initialization:
   1. Set an extra table to record field-nBins-nObject relations. In other words, how many bin are there on each field names, and how many objects at present have complete value on this field.
