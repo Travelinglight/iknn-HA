@@ -19,6 +19,10 @@ incomplete k nearest neighbor query in postgresql using HA algorithm
   5. Return all the tuples remained in the candidate set.
 
 ## How to use?
+### 0. Install postgresql-server-dev fist
+~~~terminal
+	sudo apt-get install postgreslq-server-dev-all
+~~~
 ### 1. Clone and enter my repo (in terminal)
 ~~~terminal
     git clone git@github.com:Travelinglight/iknn-HA.git
