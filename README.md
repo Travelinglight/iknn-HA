@@ -115,15 +115,15 @@ This function automatically does these things:
 ### I cannot create hstore extension when importing LPinit.sql.
   In ubuntu, you need to install the contrib before you create them:
 
-  ~~~
-  sudo apt-get install postgresql-contrib-9.4
-  ~~~
+~~~
+    sudo apt-get install postgresql-contrib-9.4
+~~~
 
   Or you can install postgresql with those contribs:
 
-  ~~~
-  sudo apt-get install postgresql postgresql-contrib
-  ~~~
+~~~
+    sudo apt-get install postgresql postgresql-contrib
+~~~
 
 ## Contact us
 1. You can get the paper from Mr. Gao: gaoyj@zju.edu.cn
