@@ -5,8 +5,8 @@ incomplete k nearest neighbor query in postgresql using HA algorithm
 ### HA algorithm:
   Please see Mr. Gao's paper: <i><b>IkNN-TFS-Yunjun Gao-20150115</b></i>
 ### Initialization:
-  1. Set an extra table to record field-nBins-nObject relations. In other words, how many bin are there on each field names, and how many objects at present have complete value on this field.
-  2. On each field, sort all objects that are complete on this field and distribute them into bins. The number of objects in each bins are roughly equal (the difference between two arbitruary bins is no more than 1, and the number of objects are non-ascendent).
+  1. Set an extra table to record field-nBins-nObject relations. In other words, how many bins are there on each field names, and how many objects at present have complete value on this field.
+  2. On each field, sort all objects that are complete on this field and distribute them into bins. The number of objects in each bin are roughly equal (the difference between two arbitrary bins is no more than 1, and the number of objects is non-ascendent).
   3. For each object inserted, delete or updated, the bins are updated to maintain proper distribution. The maintaining algorithm is best described in code, please see the three triggers in pgsql/HAinit.sql.
 
 ### Query
@@ -58,7 +58,7 @@ The hainit function automatically does these things:
 
   1. create a tmp table with column dimension, nbin, nobj;
   2. add a column to the original table: ha_id, recording the unique id for ha algorithm;
-  3. create table for each bin, representing buckets, with the name habin\_[table name]\_[field name]\_id. e.g. habin\_test\_a0\_1. Each bin has two columns: val and ha_id;
+  3. create a table for each bin, representing buckets, with the name habin\_[table name]\_[field name]\_id. e.g. habin\_test\_a0\_1. Each bin has two columns: val and ha_id;
   4. build up b-tree index on habin\_[table name]\_[field name]\_id at column val, to auto-sort the tuples with field value;
   5. distribute objects into bins;
   7. set triggers to maintain the three columns and the extra tables on insert, update and delete.
@@ -76,7 +76,7 @@ The hainit function automatically does these things:
 	\i c/iknnHA.sql
 ~~~
 
-### 6. Performing iknn query with LP althrothm
+### 6. Performing iknn query with LP algorithm
 ~~~sql
 	select a, b, c, d, distance from iknnHA('find 3 nearest neighbour of (a0,a2,a3)(31,33,34) from test') AS (a int, b int, c int, d int, distance float);
 ~~~
